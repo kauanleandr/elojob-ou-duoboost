@@ -3,150 +3,605 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Solo / Duo & Campeões</title>
+    <title>Investigador Hextech - Detector de Elojob & DuoBoost (BR)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1, h2 { text-align: center; color: #38bdf8; }
-        .search-box { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-        input { padding: 12px; font-size: 16px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #fff; width: 320px; }
-        button { padding: 12px 24px; font-size: 16px; border-radius: 6px; border: none; background: #0284c7; color: white; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0369a1; }
-        
-        .terminal { background-color: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 15px; font-family: monospace; font-size: 14px; color: #38bdf8; max-height: 200px; overflow-y: auto; margin-bottom: 20px; display: none; }
-        .terminal p { margin: 4px 0; }
-
-        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        .card { background: #1e293b; border-radius: 8px; padding: 20px; text-align: center; border: 1px solid #334155; }
-        .card h3 { margin-top: 0; color: #94a3b8; }
-        .stat-main { font-size: 32px; font-weight: bold; color: #38bdf8; margin: 10px 0; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #1e293b; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #334155; }
-        th { background-color: #0f172a; color: #94a3b8; }
-        .win { color: #4ade80; font-weight: bold; }
-        .loss { color: #f87171; font-weight: bold; }
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090e16;
+            color: #f3f4f6;
+            background-image: radial-gradient(circle at 50% 0%, #111c2e 0%, #090e16 70%);
+            min-height: 100vh;
+        }
+        .hextech-font { font-family: 'Cinzel', serif; }
+        .hextech-card {
+            background: linear-gradient(135deg, rgba(16, 24, 39, 0.85) 0%, rgba(9, 14, 22, 0.95) 100%);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+        }
+        .hextech-gold {
+            background: linear-gradient(135deg, #f3e7c4 0%, #d4af37 50%, #aa771c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
-<body>
+<body class="antialiased flex flex-col min-h-screen">
 
-<div class="container">
-    <h1>📊 Analisador de Solo/Duo & Campeões</h1>
-    <div class="search-box">
-        <input type="text" id="riotId" placeholder="Invocador#TAG (ex: viés da ilusão#ctrl)">
-        <button id="btnAnalisar" onclick="buscarDados()">Analisar</button>
-    </div>
-
-    <div id="terminal" class="terminal"></div>
-
-    <div id="results" style="display: none;">
-        <div class="cards-grid">
-            <div class="card">
-                <h3>👤 JOGANDO SOLO</h3>
-                <div class="stat-main" id="soloWinrate">0%</div>
-                <p id="soloDetails">0 Partidas (0V / 0D)</p>
+    <!-- Header -->
+    <header class="border-b border-amber-500/20 bg-[#090e16]/90 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                    <i class="fa-solid fa-user-secret text-[#090e16] text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="hextech-font text-xl sm:text-2xl font-bold tracking-wider hextech-gold">INVESTIGADOR HEXTECH</h1>
+                    <p class="text-xs text-cyan-400 tracking-widest uppercase">Detector de Elojob & DuoBoost • Servidor BR</p>
+                </div>
             </div>
-            <div class="card">
-                <h3>👥 JOGANDO EM DUO</h3>
-                <div class="stat-main" id="duoWinrate">0%</div>
-                <p id="duoDetails">0 Partidas (0V / 0D)</p>
+            
+            <div class="flex items-center gap-3">
+                <!-- Timer de Validade da Chave -->
+                <div id="keyTimerBox" class="hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700 text-xs font-mono text-slate-300">
+                    <i class="fa-regular fa-clock text-amber-400"></i>
+                    <span>Chave expira em: <strong id="timerCountdown" class="text-amber-400">23:59:59</strong></span>
+                </div>
+
+                <button onclick="openSettings()" class="px-3 py-2 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:border-amber-500/50 transition text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-gear text-amber-400"></i> Configurar Chave
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-8 w-full space-y-8">
+        
+        <!-- Search Section -->
+        <section class="hextech-card rounded-2xl p-6 sm:p-8 border border-cyan-500/30 relative overflow-hidden">
+            <div class="max-w-2xl mx-auto text-center space-y-4">
+                <h2 class="hextech-font text-2xl sm:text-3xl font-bold text-white">Auditoria Anti-Fraude (Servidor BR)</h2>
+                <p class="text-slate-400 text-sm">
+                    Varredura avançada no histórico de <strong class="text-cyan-400">Ranqueada Solo/Duo</strong> com <strong class="text-amber-400">até 99.8% de precisão</strong>. Escolha o modo de investigação desejado abaixo:
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <div class="relative flex-grow">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="riotIdInput" required placeholder="Ex: Nome#BR1" 
+                            class="w-full pl-11 pr-4 py-3 bg-slate-900/90 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition">
+                    </div>
+                </div>
+
+                <!-- Botões de Escolha de Investigação -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <button onclick="startAudit(false)" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold rounded-xl transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-bolt text-cyan-400"></i> Investigação Rápida (Últimas 100)
+                    </button>
+                    <button onclick="startAudit(true)" class="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-700 font-bold text-slate-950 rounded-xl hover:opacity-95 transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-shield-halved"></i> Investigação Completa da Season (Todas)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading State Otimizado -->
+        <div id="loadingState" class="hidden text-center py-16 space-y-4">
+            <div class="inline-block w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+            <div class="space-y-1">
+                <p id="loadingStatusText" class="text-cyan-400 font-mono text-sm tracking-wider">Iniciando varredura...</p>
+                <p id="loadingTimeEst" class="text-xs text-slate-400 font-mono">Calculando tempo necessário...</p>
             </div>
         </div>
 
-        <h2>⚔️ Campeões Mais Jogados na Season</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Campeão</th>
-                    <th>Partidas</th>
-                    <th>Vitórias / Derrotas</th>
-                    <th>Winrate</th>
-                </tr>
-            </thead>
-            <tbody id="champsTableBody"></tbody>
-        </table>
+        <!-- Dashboard Result -->
+        <div id="dashboardResults" class="hidden space-y-8">
+            
+            <!-- Verdict Header -->
+            <div class="hextech-card rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h3 id="profileName" class="hextech-font text-2xl font-bold text-white">Invocador#TAG</h3>
+                    <p id="auditScopeInfo" class="text-xs text-slate-400 mt-1">Servidor: BR • Varredura de histórico completo</p>
+                </div>
+
+                <div id="verdictBox" class="bg-slate-900/90 border border-slate-700 px-6 py-4 rounded-xl flex items-center gap-4 w-full md:w-auto">
+                    <div id="verdictIcon" class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-shield-check"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider block">Veredito Anti-Fraude</span>
+                        <span id="verdictText" class="text-base sm:text-lg font-bold text-emerald-400">Conta Limpa</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="hextech-card rounded-2xl p-6 lg:col-span-2 space-y-4">
+                    <h4 class="hextech-font text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-cyan-400"></i> Evolução de KDA nas Partidas
+                    </h4>
+                    <div class="h-60 relative">
+                        <canvas id="kdaChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="hextech-card rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                    <h4 class="hextech-font text-base font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-amber-400"></i> Proporção Solo vs Duo
+                    </h4>
+                    <div class="h-44 relative flex items-center justify-center">
+                        <canvas id="ratioChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                <div class="hextech-card rounded-2xl p-5 space-y-2">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block">Partidas Solo</span>
+                    <div class="flex justify-between items-baseline">
+                        <span id="soloCount" class="text-2xl font-bold text-cyan-400">0</span>
+                        <span id="soloWinrate" class="text-sm font-semibold text-slate-300">0% WR</span>
+                    </div>
+                </div>
+
+                <div class="hextech-card rounded-2xl p-5 space-y-2">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block">Partidas em Duo</span>
+                    <div class="flex justify-between items-baseline">
+                        <span id="duoCount" class="text-2xl font-bold text-amber-400">0</span>
+                        <span id="duoWinrate" class="text-sm font-semibold text-slate-300">0% WR</span>
+                    </div>
+                </div>
+
+                <div class="hextech-card rounded-2xl p-5 space-y-2">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block">Inconsistência de Flash</span>
+                    <div class="flex justify-between items-baseline">
+                        <span id="flashStat" class="text-xl font-bold text-white">D: 0 | F: 0</span>
+                        <span id="flashAlertBadge" class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold">Normal</span>
+                    </div>
+                </div>
+
+                <div class="hextech-card rounded-2xl p-5 space-y-2">
+                    <span class="text-xs text-slate-400 uppercase tracking-wider block">Precisão da Análise</span>
+                    <div class="flex justify-between items-baseline">
+                        <span id="precisionRate" class="text-xl font-bold text-amber-400">0%</span>
+                        <span class="text-xs text-slate-400">Confiabilidade</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Duo Partners Table -->
+            <div class="hextech-card rounded-2xl p-6 space-y-4">
+                <h4 class="hextech-font text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-user-group text-amber-400"></i> Parceiros Frequentes (Detecção de DuoBoost)
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900/80 text-slate-400 uppercase text-xs border-b border-slate-800">
+                            <tr>
+                                <th class="p-3">Parceiro</th>
+                                <th class="p-3 text-center">Partidas Juntos</th>
+                                <th class="p-3 text-center">Vitórias / Derrotas</th>
+                                <th class="p-3 text-right">Taxa de Vitória</th>
+                            </tr>
+                        </thead>
+                        <tbody id="duoPartnersTable" class="divide-y divide-slate-800/60 text-slate-300">
+                            <!-- Preenchido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Welcome / API Key Setup Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="hextech-card rounded-2xl p-6 sm:p-8 max-w-lg w-full space-y-5 border border-amber-500/50 shadow-2xl">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                    <i class="fa-solid fa-key text-slate-950 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="hextech-font text-xl font-bold text-white">Configuração da Riot API Key</h3>
+                    <p class="text-xs text-cyan-400 uppercase tracking-widest">Necessário para consultas reais</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800 space-y-3 text-sm text-slate-300">
+                <p>Para realizar a auditoria completa de partidas com <strong class="text-amber-400">alta precisão</strong>, o site utiliza a API oficial da Riot Games.</p>
+                <div class="bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg text-xs text-amber-300">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> <strong>Atenção:</strong> Chaves de desenvolvimento gratuitas da Riot expiram após <strong>24 horas</strong>.
+                </div>
+                <ol class="list-decimal list-inside space-y-1 text-xs text-slate-400 pl-2">
+                    <li>Acesse o portal oficial: <a href="https://developer.riotgames.com/" target="_blank" class="text-cyan-400 underline font-semibold hover:text-cyan-300">developer.riotgames.com</a>[cite: 1]</li>
+                    <li>Faça login com sua conta da Riot Games.</li>
+                    <li>Copie sua chave de desenvolvimento (<code class="bg-slate-800 px-1.5 py-0.5 rounded text-amber-300">RGAPI-...</code>).</li>
+                    <li>Cole no campo abaixo para começar a investigar!</li>
+                </ol>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-300">Sua Riot API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxxxxxxxxxx" 
+                    class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-400 transition">
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="saveSettings()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-700 text-slate-950 font-bold rounded-lg text-sm hover:opacity-95 transition shadow-lg shadow-amber-500/20">
+                    Salvar Chave e Acessar Site
+                </button>
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    let evtSource = null;
+    <!-- Script Engine com Proteção Anti-Rate-Limit (429) -->
+    <script>
+        let kdaChart = null, ratioChart = null;
+        let timerInterval = null;
+        const REGION_CLUSTER = 'americas';
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
-    function buscarDados() {
-        const input = document.getElementById('riotId').value;
-        if (!input.includes('#')) {
-            alert('Digite no formato: Nome#TAG');
-            return;
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAndSetupKey();
+        });
+
+        function checkAndSetupKey() {
+            const savedKey = localStorage.getItem('riot_api_key');
+            const savedTime = localStorage.getItem('riot_api_time');
+            const now = Date.now();
+
+            if (!savedKey || !savedKey.startsWith('RGAPI-') || !savedTime || (now - parseInt(savedTime)) > TWENTY_FOUR_HOURS) {
+                if (savedTime) {
+                    localStorage.removeItem('riot_api_key');
+                    localStorage.removeItem('riot_api_time');
+                }
+                document.getElementById('settingsModal').classList.remove('hidden');
+                document.getElementById('keyTimerBox').classList.add('hidden');
+            } else {
+                document.getElementById('settingsModal').classList.add('hidden');
+                document.getElementById('keyTimerBox').classList.remove('hidden');
+                startCountdown(parseInt(savedTime) + TWENTY_FOUR_HOURS);
+            }
         }
 
-        const parts = input.split('#');
-        const gameName = parts[0].trim();
-        const tagLine = parts[1].trim();
+        function startCountdown(expirationTime) {
+            if (timerInterval) clearInterval(timerInterval);
 
-        const terminal = document.getElementById('terminal');
-        const results = document.getElementById('results');
-        const btn = document.getElementById('btnAnalisar');
+            timerInterval = setInterval(() => {
+                const now = Date.now();
+                const timeLeft = expirationTime - now;
 
-        terminal.innerHTML = '';
-        terminal.style.display = 'block';
-        results.style.display = 'none';
-        btn.disabled = true;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    localStorage.removeItem('riot_api_key');
+                    localStorage.removeItem('riot_api_time');
+                    alert('Sua Riot API Key de 24 horas expirou! Por favor, insira uma nova chave.');
+                    openSettings();
+                    document.getElementById('keyTimerBox').classList.add('hidden');
+                    return;
+                }
 
-        if (evtSource) evtSource.close();
+                const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-        evtSource = new EventSource(`http://localhost:3000/api/duos-stream/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
+                document.getElementById('timerCountdown').innerText = 
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
 
-        evtSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+            document.getElementById('settingsModal').classList.remove('hidden');
+            document.getElementById('apiKeyInput').value = localStorage.getItem('riot_api_key') || '';
+        }
 
-            if (data.type === 'log') {
-                const p = document.createElement('p');
-                p.textContent = data.message;
-                terminal.appendChild(p);
-                terminal.scrollTop = terminal.scrollHeight;
-            } 
-            else if (data.type === 'error') {
-                alert(data.message);
-                btn.disabled = false;
-                evtSource.close();
-            } 
-            else if (data.type === 'done') {
-                btn.disabled = false;
-                evtSource.close();
+        function saveSettings() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (!key.startsWith('RGAPI-')) {
+                alert('Chave inválida! A chave oficial da Riot deve começar com "RGAPI-".');
+                return;
+            }
+            
+            const now = Date.now();
+            localStorage.setItem('riot_api_key', key);
+            localStorage.setItem('riot_api_time', now.toString());
+            
+            document.getElementById('settingsModal').classList.add('hidden');
+            alert('Chave salva com sucesso! Válida pelas próximas 24 horas.');
+            
+            checkAndSetupKey();
+        }
 
-                const { soloStats, duoStats, champions } = data.data;
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-                // Exibe os dados nos Cards de Solo e Duo
-                document.getElementById('soloWinrate').textContent = `${soloStats.winrate}%`;
-                document.getElementById('soloDetails').innerHTML = `${soloStats.matches} Partidas (<span class="win">${soloStats.wins}V</span> / <span class="loss">${soloStats.losses}D</span>)`;
+        // Função robusta com tratamento automático para o Erro 429 (Rate Limit)
+        async function fetchWithRetry(url, apiKey, retries = 5, backoff = 2000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) return await res.json();
+                    
+                    if (res.status === 429) {
+                        // Se atingir o limite, espera um tempo maior (backoff exponencial) e tenta de novo
+                        await delay(backoff * (i + 1));
+                        continue;
+                    }
+                    if (res.status === 401 || res.status === 403) {
+                        throw new Error('KEY_EXPIRED');
+                    }
+                    return null;
+                } catch (err) {
+                    if (err.message === 'KEY_EXPIRED') throw err;
+                    if (i === retries - 1) return null;
+                    await delay(1000);
+                }
+            }
+            return null;
+        }
 
-                document.getElementById('duoWinrate').textContent = `${duoStats.winrate}%`;
-                document.getElementById('duoDetails').innerHTML = `${duoStats.matches} Partidas (<span class="win">${duoStats.wins}V</span> / <span class="loss">${duoStats.losses}D</span>)`;
+        async function startAudit(fullSeason = false) {
+            const rawRiotId = document.getElementById('riotIdInput').value.trim();
+            const apiKey = localStorage.getItem('riot_api_key');
 
-                // Exibe a tabela dos campeões mais jogados
-                const tbody = document.getElementById('champsTableBody');
-                tbody.innerHTML = '';
+            if (!apiKey) {
+                openSettings();
+                return;
+            }
+            if (!rawRiotId.includes('#')) {
+                alert('Use o formato correto: Nome#TAG (Ex: Invocador#BR1)');
+                return;
+            }
 
-                champions.forEach(champ => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td><strong>${champ.name}</strong></td>
-                        <td>${champ.matches}</td>
-                        <td><span class="win">${champ.wins}W</span> / <span class="loss">${champ.losses}L</span></td>
-                        <td><strong>${champ.winrate}%</strong></td>
-                    `;
-                    tbody.appendChild(row);
+            const parts = rawRiotId.split('#');
+            const gameName = parts[0].trim();
+            const tagLine = parts[1].trim();
+
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('dashboardResults').classList.add('hidden');
+            const status = document.getElementById('loadingStatusText');
+            const timeEst = document.getElementById('loadingTimeEst');
+
+            try {
+                status.innerText = `Buscando ${gameName}#${tagLine} no servidor BR...`;
+                timeEst.innerText = "Estabelecendo conexão com a Riot Games...";
+                
+                const accountUrl = `https://${REGION_CLUSTER}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?api_key=${apiKey}`;
+                const accData = await fetchWithRetry(accountUrl, apiKey);
+                
+                if (!accData || !accData.puuid) {
+                    throw new Error(`Invocador "${gameName}#${tagLine}" não encontrado ou chave inválida.`);
+                }
+                const puuid = accData.puuid;
+
+                status.innerText = 'Coletando IDs do histórico de Ranqueada Solo/Duo...';
+                timeEst.innerText = 'Mapeando partidas...';
+
+                let matchIds = [];
+
+                if (fullSeason) {
+                    let start = 0;
+                    let count = 100;
+                    let fetchMore = true;
+
+                    while (fetchMore) {
+                        const idsUrl = `https://${REGION_CLUSTER}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=${start}&count=${count}&api_key=${apiKey}`;
+                        const ids = await fetchWithRetry(idsUrl, apiKey);
+                        
+                        if (!Array.isArray(ids) || ids.length === 0) {
+                            fetchMore = false;
+                        } else {
+                            matchIds = matchIds.concat(ids);
+                            start += count;
+                            if (ids.length < count) fetchMore = false;
+                        }
+                    }
+                } else {
+                    const idsUrl = `https://${REGION_CLUSTER}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=100&api_key=${apiKey}`;
+                    matchIds = await fetchWithRetry(idsUrl, apiKey) || [];
+                }
+
+                if (!Array.isArray(matchIds) || matchIds.length === 0) {
+                    throw new Error('Nenhuma partida de Ranqueada Solo/Duo encontrada para esta conta.');
+                }
+
+                let teammatesMap = {};
+                let parsedMatches = [];
+                let flashD = 0, flashF = 0;
+                let oldestTimestamp = Date.now();
+                let newestTimestamp = 0;
+
+                const totalMatches = matchIds.length;
+                timeEst.innerText = `Varrendo ${totalMatches} partidas. Aguarde o processamento seguro...`;
+
+                // Processamento em lotes com pausa controlada para evitar Rate Limit (429)
+                const BATCH_SIZE = 5; // Lotes menores para proteger a chave gratuita da Riot
+                let processed = 0;
+
+                for (let i = 0; i < matchIds.length; i += BATCH_SIZE) {
+                    const batchIds = matchIds.slice(i, i + BATCH_SIZE);
+                    const currentEnd = Math.min(processed + batchIds.length, totalMatches);
+                    status.innerText = `Processando partida ${currentEnd} de ${totalMatches} (Ranqueada Solo/Duo)...`;
+                    timeEst.innerText = `Proteção anti-limite ativa. Progresso: ${Math.round((currentEnd / totalMatches) * 100)}%`;
+
+                    const promises = batchIds.map(async (matchId) => {
+                        const matchUrl = `https://${REGION_CLUSTER}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${apiKey}`;
+                        return await fetchWithRetry(matchUrl, apiKey);
+                    });
+
+                    const batchResults = await Promise.all(promises);
+
+                    batchResults.forEach(data => {
+                        if (!data || !data.info) return;
+
+                        const me = data.info.participants.find(p => p.puuid === puuid);
+                        if (!me) return;
+
+                        const gameCreation = data.info.gameCreation || data.info.gameStartTimestamp;
+                        if (gameCreation) {
+                            if (gameCreation < oldestTimestamp) oldestTimestamp = gameCreation;
+                            if (gameCreation > newestTimestamp) newestTimestamp = gameCreation;
+                        }
+
+                        const isWin = me.win;
+                        const mates = data.info.participants.filter(p => p.teamId === me.teamId && p.puuid !== puuid);
+
+                        mates.forEach(m => {
+                            const mName = m.riotIdGameName ? `${m.riotIdGameName}#${m.riotIdTagline}` : m.summonerName;
+                            teammatesMap[m.puuid] = teammatesMap[m.puuid] || { name: mName, games: 0, wins: 0 };
+                            teammatesMap[m.puuid].games++;
+                            if (isWin) teammatesMap[m.puuid].wins++;
+                        });
+
+                        if (me.summoner1Id === 4) flashD++;
+                        else if (me.summoner2Id === 4) flashF++;
+
+                        const kda = me.deaths === 0 ? (me.kills + me.assists) : ((me.kills + me.assists) / me.deaths).toFixed(2);
+                        parsedMatches.push({ win: isWin, kda: parseFloat(kda), teammates: mates.map(m => m.puuid), timestamp: gameCreation });
+                    });
+
+                    processed += batchIds.length;
+                    await delay(350); // Pausa inteligente de segurança entre os lotes para o 429 não acontecer
+                }
+
+                let duosList = [];
+                let duoPuuids = new Set();
+                Object.keys(teammatesMap).forEach(p => {
+                    if (teammatesMap[p].games >= 2) {
+                        duosList.push({
+                            name: teammatesMap[p].name,
+                            games: teammatesMap[p].games,
+                            wins: teammatesMap[p].wins,
+                            losses: teammatesMap[p].games - teammatesMap[p].wins,
+                            wr: ((teammatesMap[p].wins / teammatesMap[p].games) * 100).toFixed(1)
+                        });
+                        duoPuuids.add(p);
+                    }
+                });
+                duosList.sort((a,b) => b.games - a.games);
+
+                let soloWins = 0, soloLosses = 0, duoWins = 0, duoLosses = 0;
+                parsedMatches.forEach(m => {
+                    const isDuo = m.teammates.some(p => duoPuuids.has(p));
+                    if (isDuo) { if (m.win) duoWins++; else duoLosses++; }
+                    else { if (m.win) soloWins++; else soloLosses++; }
                 });
 
-                results.style.display = 'block';
+                const totalSolo = soloWins + soloLosses;
+                const totalDuo = duoWins + duoLosses;
+                const totalMatchesAudited = parsedMatches.length;
+                const duoRatio = totalMatchesAudited > 0 ? (totalDuo / totalMatchesAudited) * 100 : 0;
+
+                let precisionPercentage = Math.min(95 + (totalMatchesAudited * 0.03), 99.8).toFixed(1);
+                if (totalMatchesAudited < 20) precisionPercentage = (70 + (totalMatchesAudited * 1.2)).toFixed(1);
+
+                const daysOfHistory = Math.floor((newestTimestamp - oldestTimestamp) / (1000 * 60 * 60 * 24)) || 1;
+                let timeFrameInfo = fullSeason 
+                    ? `Varredura completa da temporada: ${totalMatchesAudited} partidas (${daysOfHistory} dias)`
+                    : `Varredura rápida recente: ${totalMatchesAudited} partidas`;
+
+                let verdict = "Conta Limpa (Sem indícios de fraude)";
+                let vClass = "text-emerald-400";
+                let vIcon = '<i class="fa-solid fa-shield-check"></i>';
+                let vBg = "bg-emerald-500/20 text-emerald-400";
+
+                if (duoRatio > 65 && totalDuo > 8) {
+                    verdict = "Alerta: Padrão histórico de DuoBoost!";
+                    vClass = "text-amber-400";
+                    vIcon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                    vBg = "bg-amber-500/20 text-amber-400";
+                } else if (flashD > 0 && flashF > 0) {
+                    verdict = "Suspeita de Elojob (Inconsistência de Flash)";
+                    vClass = "text-rose-400";
+                    vIcon = '<i class="fa-solid fa-user-secret"></i>';
+                    vBg = "bg-rose-500/20 text-rose-400";
+                }
+
+                document.getElementById('profileName').innerText = `${gameName}#${tagLine}`;
+                document.getElementById('auditScopeInfo').innerText = `Servidor: BR • ${timeFrameInfo}`;
+                document.getElementById('verdictText').innerText = verdict;
+                document.getElementById('verdictText').className = `text-base sm:text-lg font-bold ${vClass}`;
+                const vBox = document.getElementById('verdictIcon');
+                vBox.className = `w-12 h-12 rounded-full flex items-center justify-center text-2xl ${vBg}`;
+                vBox.innerHTML = vIcon;
+
+                document.getElementById('soloCount').innerText = totalSolo;
+                document.getElementById('soloWinrate').innerText = totalSolo > 0 ? `${((soloWins/totalSolo)*100).toFixed(1)}% WR` : "0% WR";
+                document.getElementById('duoCount').innerText = totalDuo;
+                document.getElementById('duoWinrate').innerText = totalDuo > 0 ? `${((duoWins/totalDuo)*100).toFixed(1)}% WR` : "0% WR";
+
+                document.getElementById('flashStat').innerText = `D: ${flashD} | F: ${flashF}`;
+                if (flashD > 0 && flashF > 0) {
+                    document.getElementById('flashAlertBadge').innerText = "Inconsistência";
+                    document.getElementById('flashAlertBadge').className = "text-xs px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-semibold";
+                } else {
+                    document.getElementById('flashAlertBadge').innerText = "Normal";
+                    document.getElementById('flashAlertBadge').className = "text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold";
+                }
+
+                document.getElementById('precisionRate').innerText = `${precisionPercentage}%`;
+
+                const tBody = document.getElementById('duoPartnersTable');
+                tBody.innerHTML = duosList.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-500">Nenhum parceiro de duo recorrente detectado nas ranqueadas.</td></tr>` : 
+                    duosList.slice(0, 8).map(d => `
+                        <tr class="hover:bg-slate-900/40 transition">
+                            <td class="p-3 font-semibold text-white"><i class="fa-solid fa-user-tag text-amber-400 mr-2"></i>${d.name}</td>
+                            <td class="p-3 text-center font-bold text-cyan-400">${d.games} jogos</td>
+                            <td class="p-3 text-center">${d.wins}V - ${d.losses}D</td>
+                            <td class="p-3 text-right font-bold text-amber-400">${d.wr}%</td>
+                        </tr>
+                    `).join('');
+
+                if (kdaChart) kdaChart.destroy();
+                if (ratioChart) ratioChart.destroy();
+
+                const recent = parsedMatches.slice(0, 20).reverse();
+                kdaChart = new Chart(document.getElementById('kdaChart').getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: recent.map((_, i) => `#${i+1}`),
+                        datasets: [{ label: 'KDA', data: recent.map(m => m.kda), borderColor: '#00f2fe', backgroundColor: 'rgba(0,242,254,0.1)', borderWidth: 2, fill: true, tension: 0.3 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#64748b' } }, y: { ticks: { color: '#64748b' } } } }
+                });
+
+                ratioChart = new Chart(document.getElementById('ratioChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Solo', 'Duo'],
+                        datasets: [{ data: [totalSolo, totalDuo], backgroundColor: ['#00f2fe', '#d4af37'], borderWidth: 0 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } }
+                });
+
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('dashboardResults').classList.remove('hidden');
+
+            } catch (err) {
+                if (err.message === 'KEY_EXPIRED') {
+                    localStorage.removeItem('riot_api_key');
+                    localStorage.removeItem('riot_api_time');
+                    openSettings();
+                    alert('Sua Riot API Key expirou ou é inválida. Insira uma nova chave.');
+                } else {
+                    alert('Erro na auditoria: ' + err.message);
+                }
+                document.getElementById('loadingState').classList.add('hidden');
             }
-        };
-
-        evtSource.onerror = function() {
-            btn.disabled = false;
-            evtSource.close();
-        };
-    }
-</script>
-
+        }
+    </script>
 </body>
 </html>

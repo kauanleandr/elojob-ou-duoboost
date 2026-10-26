@@ -16,10 +16,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 🔑 SUA CHAVE DA RIOT GAMES
-const RIOT_API_KEY = "RGAPI-89c9bb13-ed69-41ef-b025-9960043eee26"; 
+// Configurações de Região
 const REGION_ACCOUNT = "americas"; 
-const REGION_MATCH = "br1";      
 
 const SEASON_START_TIMESTAMP = Math.floor(new Date('2026-01-08T00:00:00Z').getTime() / 1000);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -35,17 +33,25 @@ app.get('/api/duos-stream/:gameName/:tagLine', async (req, res) => {
 
     try {
         const { gameName, tagLine } = req.params;
+        
+        // Pega obrigatoriamente a chave enviada pela sessão do usuário (Query String ou Header)
+        const RIOT_API_KEY = req.query.apiKey || req.headers['x-api-key'];
+
+        if (!RIOT_API_KEY) {
+            sendEvent('error', '❌ Nenhuma Riot API Key fornecida! Insira sua chave no site para continuar.');
+            return res.end();
+        }
 
         const cleanGameName = encodeURIComponent(gameName.trim());
         const cleanTag = encodeURIComponent(tagLine.trim());
 
-        sendEvent('log', `🔍 Buscando jogador na Riot: ${gameName}#${tagLine}...`);
+        sendEvent('log', `🔍 Buscando jogador na Riot (BR): ${gameName}#${tagLine}...`);
 
         const accountUrl = `https://${REGION_ACCOUNT}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${cleanGameName}/${cleanTag}?api_key=${RIOT_API_KEY}`;
         const accountRes = await fetch(accountUrl);
         
         if (accountRes.status === 403 || accountRes.status === 401) {
-            sendEvent('error', '❌ Sua Riot API Key expirou ou é inválida!');
+            sendEvent('error', '❌ A Riot API Key informada expirou ou é inválida!');
             return res.end();
         }
 
@@ -203,5 +209,5 @@ app.get('/api/duos-stream/:gameName/:tagLine', async (req, res) => {
     }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
